@@ -1,0 +1,89 @@
+# --- Дефолтные значения для чарта synth-addon ---
+# Общий шаблон внешнего сервиса-надстройки (add-on) Synth.
+# Переопределяются при установке (--set, values-файл).
+
+# Namespace развёртывания. Helm деплоит в namespace релиза; значение служит
+# документацией для `helm template` и конфигурации managed-деплоя.
+namespace: synth
+
+nameOverride: ""
+fullnameOverride: ""
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Поды — один Deployment.
+# ─────────────────────────────────────────────────────────────────────────────
+replicaCount: 1
+
+image:
+  # Замените на свой реестр и имя образа (образ собирается из docker/Dockerfile).
+  repository: registry.example.com/synth-addon-example
+  tag: latest
+  pullPolicy: Always
+
+# Авторизация для приватного реестра. Пусто — публичный реестр.
+# Для приватного реестра укажите Secret (kubernetes.io/dockerconfigjson):
+#   imagePullSecrets:
+#     - name: my-registry-credentials
+imagePullSecrets: []
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Service — ClusterIP с портом сервиса.
+# ─────────────────────────────────────────────────────────────────────────────
+service:
+  type: ClusterIP
+  port: 7100
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Env-переменные приложения (НЕ секреты). Секреты — через existingSecret.
+# ─────────────────────────────────────────────────────────────────────────────
+env:
+  SYNTH_ADDON_HOST: "0.0.0.0"
+  SYNTH_ADDON_PORT: "7100"
+  SYNTH_ADDON_DATA_DIR: "/var/lib/synth-addon/data"
+
+# Имя существующего Secret (kubectl/SealedSecret) с секретами сервиса —
+# подключается как envFrom (например, SYNTH_ADDON_TOKEN).
+# Пусто — секреты не монтируются. Значения секретов в git не хранить;
+# пример Secret — examples/secret.yaml.
+existingSecret: ""
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Хранилище JSON-состояния (data-dir). Пусто (enabled: false) — без PVC.
+# ─────────────────────────────────────────────────────────────────────────────
+persistence:
+  enabled: false
+  size: 1Gi
+  storageClass: ""
+  mountPath: /var/lib/synth-addon/data
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ресурсы и безопасность контейнера.
+# ─────────────────────────────────────────────────────────────────────────────
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ingress — по умолчанию выключен (add-on обычно доступен в кластере).
+# ─────────────────────────────────────────────────────────────────────────────
+ingress:
+  enabled: false
+  className: traefik
+  hosts: []
+  tls: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

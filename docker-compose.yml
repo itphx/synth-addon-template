@@ -1,0 +1,27 @@
+# Локальный запуск add-on'а: сервис + volume для JSON-данных (data-dir).
+# Порт по умолчанию — 7100 (см. apps/example/src/config.ts).
+#
+# Секреты передаются переменными окружения (см. .env.example) или через
+# внешний Secret; файлов с секретами в шаблоне нет.
+services:
+  example:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: synth-addon-example:latest
+    environment:
+      SYNTH_ADDON_HOST: 0.0.0.0
+      SYNTH_ADDON_PORT: "7100"
+      SYNTH_ADDON_DATA_DIR: /var/lib/synth-addon/data
+      # Bearer-токен API. Без него аутентификация отключена.
+      SYNTH_ADDON_TOKEN: ${SYNTH_ADDON_TOKEN:-}
+      # URL egress-прокси (пусто — прямые запросы).
+      SYNTH_ADDON_PROXY_URL: ${SYNTH_ADDON_PROXY_URL:-}
+    ports:
+      - "7100:7100"
+    volumes:
+      - addon-data:/var/lib/synth-addon/data
+    restart: unless-stopped
+
+volumes:
+  addon-data:

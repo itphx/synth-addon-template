@@ -1,0 +1,20 @@
+# Зависимости
+node_modules/
+
+# Сборка
+dist/
+*.tsbuildinfo
+
+# Runtime-данные (JSON-хранилище add-on'а)
+data/
+tmp/
+
+# Окружение и секреты — вне git (пример — .env.example, docs/configuration.md)
+.env
+.env.*
+!.env.example
+secrets/
+
+# Тесты и логи
+coverage/
+*.log

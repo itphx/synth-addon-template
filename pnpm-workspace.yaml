@@ -1,0 +1,8 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Разрешаем postinstall-сборки только доверенным пакетам (pnpm 10+ блокирует
+# скрипты по умолчанию). esbuild нужен инструментам сборки/тестов.
+onlyBuiltDependencies:
+  - esbuild

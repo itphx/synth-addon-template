@@ -1,0 +1,4 @@
+{
+  "files": [],
+  "references": [{ "path": "./packages/example-lib" }, { "path": "./apps/example" }]
+}

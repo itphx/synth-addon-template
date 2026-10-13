@@ -1,0 +1,8 @@
+{
+  "name": "@itphx/synth-addon-example",
+  "version": "0.0.0",
+  "kind": "addon",
+  "host": "^0.9.0",
+  "contracts": { "apiV2": "^2", "events": "^1", "mcp": "^1" },
+  "description": "Пример внешнего сервиса-надстройки Synth"
+}
