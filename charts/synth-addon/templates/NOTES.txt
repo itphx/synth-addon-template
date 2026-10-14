@@ -71,7 +71,7 @@ Persistent-хранилище (data-dir):
     --set autoInstall.url=http://synth-backend.{{ .Release.Namespace }}.svc.cluster.local:5000/api/v2 \
     --set autoInstall.installerSecretName=synth-addon-installer
 
-Ресурсы ставятся из `provides` в addon.json (MCP-серверы и скиллы); подробности —
+Ресурсы ставятся из `provides` в synth.pack (MCP-серверы и скиллы); подробности —
 docs/deployment.md.
 {{- end }}
 

@@ -24,7 +24,7 @@ curl -s http://127.0.0.1:7100/health
 
 Сервис собирается по `docker/Dockerfile` (multi-stage: workspace-сборка →
 тонкий runtime). JSON-хранилище вынесено в именованный volume `addon-data`.
-Образ содержит `addon.json`, `skills/` и `scripts/install-into-synth.mjs` — это
+Образ содержит `synth.pack`, `skills/` и `scripts/install-into-synth.mjs` — это
 то, что нужно hook-Job'у авто-установки (см. ниже).
 
 ## Kubernetes / Helm
@@ -86,7 +86,7 @@ helm template a charts/synth-addon --set service.enabled=false   # пусто
 Чарт умеет **сам установить** ресурсы аддона в инстанс Synth: hook-Job
 (`templates/install-job.yaml`, hooks `post-install,post-upgrade`,
 `hook-delete-policy: before-hook-creation,hook-succeeded`) запускает
-`scripts/install-into-synth.mjs`, который читает `provides` из `addon.json` и
+`scripts/install-into-synth.mjs`, который читает `provides` из `synth.pack` и
 идемпотентно приводит инстанс к этому состоянию:
 
 - **MCP** — `POST /api/v2/mcp/registry`; если сервер уже есть (`409`) —
@@ -163,7 +163,7 @@ kubectl -n synth create secret generic synth-addon-installer \
 3. **Образ Job'а** — с node (например, `autoInstall.image=node:22-alpine`).
 
 Если образ есть — файлы скиллов и инсталлятор берутся из него
-(`scripts/`, `addon.json`, `skills/` копируются в образ по `docker/Dockerfile`),
+(`scripts/`, `synth.pack`, `skills/` копируются в образ по `docker/Dockerfile`),
 и обе опции выше не нужны.
 
 ### Проверка результата

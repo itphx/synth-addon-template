@@ -59,7 +59,7 @@ export async function runMcpServer(version: string): Promise<void> {
  * транспорта не обрывает стрим. Состояние держит сам сервис.
  *
  * Аддон, обслуживающий несколько сред, обычно отдаёт путь с тенантом —
- * `/mcp/{tenant}` — и указывает его в `addon.json.provides.mcp.path`
+ * `/mcp/{tenant}` — и указывает его в `synth.pack.provides.mcp.path`
  * (см. docs/contract.md §4); в примере тенант не нужен.
  */
 export function createMcpHttpHandler(version: string): (request: Request) => Promise<Response> {

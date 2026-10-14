@@ -145,7 +145,7 @@ Synth по тем же адресам, что и любой внешний кл�
 
 ## 4. Совместимость и версионирование
 
-Совместимость с Synth описывается манифестом **`addon.json`** в корне репозитория:
+Совместимость с Synth описывается манифестом **`synth.pack`** в корне репозитория:
 
 ```json
 {
@@ -240,7 +240,7 @@ Deployment/Service/PVC/Ingress не рендерятся. Если у аддон
 
 ```text
 synth-addon-template/
-├── addon.json                  # манифест add-on'а (kind/host/contracts/provides)
+├── synth.pack                  # манифест add-on'а (kind/host/contracts/provides)
 ├── package.json                # private, type:module, pnpm-скрипты
 ├── pnpm-workspace.yaml         # apps/*, packages/*
 ├── tsconfig.base.json          # общий strict-TS конфиг
@@ -314,7 +314,7 @@ synth-addon-template/
       сервис и слушает ожидаемый порт.
 - [ ] **Compose/Helm.** `docker-compose.yml`, `charts/synth-addon`
       (`helm lint` + `helm template` зелёные).
-- [ ] **`provides`.** Ресурсы аддона описаны в `addon.json` (`provides.mcp` /
+- [ ] **`provides`.** Ресурсы аддона описаны в `synth.pack` (`provides.mcp` /
       `provides.skills`) или явно отсутствуют; имена совпадают с реальными
       (имя MCP-сервера в реестре, имена скиллов), `path` MCP совпадает с
       маршрутом сервиса.
@@ -323,7 +323,7 @@ synth-addon-template/
       идемпотентен (повторный запуск не плодит дубликаты, инсталлятор
       проверен с `--dry-run`); installer-ключ лежит в Secret, не в values.
 - [ ] **README/AGENTS.** Описаны назначение, команды, конфиг и границы.
-- [ ] **Совместимость.** Заполнены `addon.json` (`host`, `contracts`, semver);
+- [ ] **Совместимость.** Заполнены `synth.pack` (`host`, `contracts`, semver);
       диапазоны соответствуют реально используемым контрактам.
 - [ ] **Сборка/тесты.** `pnpm build && pnpm typecheck && pnpm lint && pnpm test`
       зелёные; есть тесты на health, конфиг, хранилище и egress-слой.

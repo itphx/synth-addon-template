@@ -78,7 +78,7 @@ function printHelp(): void {
       'Флаги:',
       '  --mcp            запустить MCP-сервер по stdio вместо HTTP',
       '  --http           отдавать MCP по Streamable HTTP на том же порту, путь /mcp',
-      '                   (совпадает с addon.json provides.mcp.path; также поднимает HTTP API)',
+      '                   (совпадает с synth.pack provides.mcp.path; также поднимает HTTP API)',
       '  --port N         порт HTTP-сервера (env SYNTH_ADDON_PORT, по умолчанию 7100)',
       '  --host HOST      адрес прослушивания (env SYNTH_ADDON_HOST, по умолчанию 127.0.0.1)',
       '  --data-dir DIR   каталог JSON-хранилища (env SYNTH_ADDON_DATA_DIR, по умолчанию <repo>/data)',

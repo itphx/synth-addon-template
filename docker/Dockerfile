@@ -45,8 +45,8 @@ COPY --from=builder /src/apps/example/dist apps/example/dist
 
 # Манифест, скиллы и референсный инсталлятор — для hook-Job'а авто-установки
 # ресурсов (charts/synth-addon, templates/install-job.yaml):
-#   node scripts/install-into-synth.mjs --synth-url … (читает addon.json.provides)
-COPY addon.json ./
+#   node scripts/install-into-synth.mjs --synth-url … (читает synth.pack.provides)
+COPY synth.pack ./
 COPY skills skills
 COPY scripts scripts
 

@@ -2,7 +2,7 @@
 /**
  * Референсный инсталлятор ресурсов add-on'а в инстанс Synth.
  *
- * Что делает: читает `addon.json` → `provides` (AD-071 MCP-серверы, AD-046 скиллы)
+ * Что делает: читает `synth.pack` → `provides` (AD-071 MCP-серверы, AD-046 скиллы)
  * и идемпотентно приводит инстанс Synth к этому состоянию:
  *
  *   managed (backend, API v2)      — MCP:  POST /api/v2/mcp/registry → 409 → PUT /api/v2/mcp/servers/:name
@@ -18,7 +18,7 @@
  *   - токен не логируется (в вывод — только факт «задан/не задан»).
  *
  * Реализация — референсная: боевой add-on может везти свою (например, с
- * тенант-спецификой), сохраняя контракт `addon.json.provides`.
+ * тенант-спецификой), сохраняя контракт `synth.pack.provides`.
  */
 
 import { randomUUID } from 'node:crypto';
@@ -45,7 +45,7 @@ const HELP = `install-into-synth — установка ресурсов add-on'
   --service-host HOST хост сервиса аддона для сборки URL MCP (обычно
                       <release>.<ns>.svc.cluster.local)
   --mcp-url URL       явный URL MCP (переопределяет --service-host + provides.mcp.path)
-  --manifest PATH     путь к addon.json (по умолчанию <repo>/addon.json)
+  --manifest PATH     путь к synth.pack (по умолчанию <repo>/synth.pack)
   --skills-dir DIR    каталог с деревом скиллов (по умолчанию — по provides.skills[].path);
                       при задании источником служит DIR/<name>/SKILL.md
   --only LIST         что ставить: mcp,skills (по умолчанию — всё из provides)
@@ -270,7 +270,7 @@ async function buildPlan(opts) {
     }
   }
   if (!plan.modes.mcp && !plan.modes.skills) {
-    log('в addon.json.provides нет ресурсов для установки — нечего делать');
+    log('в synth.pack.provides нет ресурсов для установки — нечего делать');
   }
   return plan;
 }
@@ -470,7 +470,7 @@ async function main() {
     console.log(HELP);
     return;
   }
-  if (!opts.manifest) opts.manifest = join(REPO_ROOT, 'addon.json');
+  if (!opts.manifest) opts.manifest = join(REPO_ROOT, 'synth.pack');
   if (!opts.token) opts.token = (process.env.SYNTH_INSTALL_TOKEN ?? '').trim();
 
   const standalone = Boolean(opts.config || opts.dataDir);

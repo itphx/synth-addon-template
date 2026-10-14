@@ -12,7 +12,16 @@
 
 Шаблон также умеет **ставить свои декларативные ресурсы** (MCP-серверы, скиллы)
 в инстанс Synth при деплое — Helm-чарт (`autoInstall`) + референсный инсталлятор
-`scripts/install-into-synth.mjs` по манифесту `addon.json.provides`.
+`scripts/install-into-synth.mjs` по манифесту `synth.pack.provides`.
+
+**Единый манифест расширения — `synth.pack`** (JSON в корне репозитория, без
+расширения в имени; пришёл на смену разрозненным манифестам). Он используется
+**всеми** классами
+расширений и контент-паков, класс задаётся полем `kind`
+(`plugin` | `gateway` | `addon` | `pack`). Для контент-паков дополнительно
+задаётся `kind: "pack"` + `packType`
+(`skills` | `agents` | `mcp` | `themes` | `i18n` | `providers` | `prompts` |
+`automation` | `policies` | `memory` | `ui`).
 
 ## Инварианты (не нарушать)
 
@@ -31,7 +40,7 @@
 7. **`GET /health` — без auth**; остальные маршруты — Bearer-токен (если задан).
 8. **Идемпотентность входов** — дедупликация внешних событий; в
    `POST /api/v2/events` передаётся стабильный `dedupKey`.
-9. **Декларативный контракт ресурсов — `addon.json.provides`.** Что аддон даёт
+9. **Декларативный контракт ресурсов — `synth.pack.provides`.** Что аддон даёт
    Synth (MCP-сервер и/или скиллы), описывается в манифесте, а не в коде
    установки: `provides.mcp` (имя/транспорт/порт/путь/описание) и
    `provides.skills[]` (`name` + `path` к дереву скилла). Имена совпадают с
@@ -74,11 +83,11 @@
 | `packages/example-lib` | Библиотека `@itphx/synth-addon-example-lib`: egress-слой (прокси) |
 | `skills/example` | Пример скилла формата AD-046 |
 | `scripts/install-into-synth.mjs` | Референсный инсталлятор `provides` в Synth: managed (API v2) и standalone (`--config`/`--data-dir`), `--dry-run`, идемпотентный |
-| `addon.json` | Манифест: `kind`/`host`/`contracts` + `provides` (MCP/скиллы) |
+| `synth.pack` | Манифест: `kind`/`host`/`contracts` + `provides` (MCP/скиллы) |
 | `charts/synth-addon/` | Helm-чарт: сервис (`service.enabled`) + авто-установка (`autoInstall`) |
 | `charts/synth-addon/templates/install-job.yaml` | Hook-Job (`post-install,post-upgrade`) авто-установки |
 | `charts/synth-addon/templates/install-skills-configmap.yaml` | ConfigMap скиллов — для аддонов без образа |
-| `docker/`, `docker-compose.yml` | Образ и локальный запуск (в образ копируются `addon.json`/`skills`/`scripts`) |
+| `docker/`, `docker-compose.yml` | Образ и локальный запуск (в образ копируются `synth.pack`/`skills`/`scripts`) |
 | `examples/secret.yaml`, `examples/installer-secret.yaml` | Примеры Secret'ов: сервис и installer-ключ |
 | `charts/`, `docs/` | Деплой, контракт, конфигурация |
 
@@ -110,6 +119,6 @@ helm template a charts/synth-addon --set autoInstall.enabled=true \
 | Конфигурация и секреты (включая installer-ключ) | [docs/configuration.md](./docs/configuration.md) |
 | Деплой (docker/compose/K8s/Helm) | [docs/deployment.md](./docs/deployment.md) |
 | Обзор и быстрый старт | [README.md](./README.md) |
-| Манифест совместимости и `provides` | `addon.json` |
+| Манифест совместимости и `provides` | `synth.pack` |
 | Инсталлятор | `scripts/install-into-synth.mjs` (`--help`) |
 | Расширяемость и внешние события Synth (AD-086/089/090) | репозиторий Synth: <https://gitverse.ru/itphx/synth> |

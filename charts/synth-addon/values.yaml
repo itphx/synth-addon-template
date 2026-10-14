@@ -36,7 +36,7 @@ service:
   port: 7100
   # Порт MCP-сервера (Streamable HTTP), если он отличается от service.port.
   # 0/пусто — отдельный порт в Service не публикуется. Должен совпадать с
-  # `provides.mcp.port` в addon.json — по нему чарт собирает URL для авто-установки.
+  # `provides.mcp.port` в synth.pack — по нему чарт собирает URL для авто-установки.
   mcpPort: 0
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -109,7 +109,7 @@ ingress:
   tls: []
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Авто-установка ресурсов аддона (из `provides` в addon.json) в инстанс Synth.
+# Авто-установка ресурсов аддона (из `provides` в synth.pack) в инстанс Synth.
 #
 # Выполняется Helm hook-Job'ом (`templates/install-job.yaml`: post-install,
 # post-upgrade) через референсный инсталлятор scripts/install-into-synth.mjs:
@@ -131,11 +131,11 @@ autoInstall:
   # скиллы; целевой скоуп — `addons:install`, см. docs/deployment.md) и ключ в нём.
   installerSecretName: ""
   installerSecretKey: "token"
-  # Что устанавливать (ресурсы берутся из addon.json `provides`).
+  # Что устанавливать (ресурсы берутся из synth.pack `provides`).
   mcp: true
   skills: true
   # Образ для hook-Job'а. Пусто — образ чарта (image.repository:image.tag),
-  # в котором есть addon.json, skills/ и scripts/install-into-synth.mjs.
+  # в котором есть synth.pack, skills/ и scripts/install-into-synth.mjs.
   # Для аддона без образа укажите образ с node (например, node:22-alpine) и
   # см. scriptConfigMap/skillsFromConfigMap.
   image: ""

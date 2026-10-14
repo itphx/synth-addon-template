@@ -53,7 +53,7 @@ export function createApp(config: AddonConfig, options: AppOptions = {}): Hono {
   });
 
   // MCP по Streamable HTTP (режим `--http`): путь совпадает с
-  // `addon.json.provides.mcp.path` (в примере — `/mcp`).
+  // `synth.pack.provides.mcp.path` (в примере — `/mcp`).
   if (options.mcpHandler) {
     const mcpHandler = options.mcpHandler;
     app.all('/mcp', (c) => mcpHandler(c.req.raw));

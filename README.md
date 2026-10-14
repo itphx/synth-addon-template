@@ -22,9 +22,15 @@ AD-086 (класс «внешние сервисы-надстройки») и AD
 
 ## Что аддон умеет объявлять и ставить
 
-Аддон описывает свои декларативные ресурсы в манифесте **`addon.json` → `provides`**
+Аддон описывает свои декларативные ресурсы в манифесте **`synth.pack` → `provides`**
 (MCP-сервер и/или скиллы), а Helm-чарт ставит их в инстанс Synth hook-Job'ом
 (`autoInstall`) через референсный инсталлятор `scripts/install-into-synth.mjs`:
+
+> **Единый манифест `synth.pack`.** JSON в корне репозитория (без расширения в имени)
+> — общий для **всех** классов расширений и контент-паков; класс задаётся полем
+> `kind` (`plugin` | `gateway` | `addon` | `pack`). Для контент-паков — `kind: "pack"`
+> + `packType` (`skills` | `agents` | `mcp` | `themes` | `i18n` | `providers` |
+> `prompts` | `automation` | `policies` | `memory` | `ui`).
 
 ```json
 "provides": {
@@ -79,7 +85,7 @@ TypeScript (strict, ESM, NodeNext), [pnpm workspaces](https://pnpm.io/workspaces
    - `apps/example` → `apps/<ваш-сервис>`, `package.json` → `@itphx/synth-addon-<ваш>`;
    - `packages/example-lib` → `packages/<ваша-библиотека>`, `package.json` →
      `@itphx/synth-addon-<ваша>-lib`; обновить импорт `workspace:*` в сервисе;
-   - `addon.json` → своё `name`, `host`, `contracts`, `description`,
+   - `synth.pack` → своё `name`, `host`, `contracts`, `description`,
      **`provides`** (MCP/скиллы; нет ресурсов — уберите поле);
    - префикс env `SYNTH_ADDON_*` → свой (например, `SYNTH_TG_*`);
    - Helm-чарт `charts/synth-addon` → `charts/<ваш-чарт>`, обновить `name` в
@@ -99,13 +105,13 @@ TypeScript (strict, ESM, NodeNext), [pnpm workspaces](https://pnpm.io/workspaces
 
 ```text
 synth-addon-template/
-├── addon.json                  # манифест add-on'а (kind/host/contracts + provides)
+├── synth.pack                  # манифест add-on'а (kind/host/contracts + provides)
 ├── apps/example/               # СЕРВИС (роль «app»): HTTP + MCP (stdio/HTTP), bin
 ├── packages/example-lib/       # БИБЛИОТЕКА (роль «lib»): общий egress-слой
 ├── skills/example/SKILL.md     # пример скилла формата AD-046
 ├── scripts/install-into-synth.mjs  # инсталлятор ресурсов (provides) в Synth
 ├── examples/                   # примеры Secret'ов (сервис, installer-ключ)
-├── docker/Dockerfile           # multi-stage образ (addon.json/skills/scripts внутри)
+├── docker/Dockerfile           # multi-stage образ (synth.pack/skills/scripts внутри)
 ├── docker-compose.yml          # локальный запуск + volume для data
 ├── charts/synth-addon/         # Helm-чарт: сервис + autoInstall hook-Job
 ├── docs/contract.md            # контракт add-on'а (канонический источник)
