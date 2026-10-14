@@ -123,9 +123,9 @@ curl -s -X POST -H 'Authorization: Bearer dev-token' -H 'content-type: applicati
 
 ## Деплой
 
-Локально — `docker compose up --build`; K3s — Helm-чарт `charts/synth-addon`
-(секреты — через `existingSecret`). Managed-деплой — во внешнем закрытом
-репозитории. Подробности — [docs/deployment.md](./docs/deployment.md).
+Локально — `docker compose up --build`; Kubernetes — Helm-чарт `charts/synth-addon`
+(секреты — через `existingSecret`). Подробности —
+[docs/deployment.md](./docs/deployment.md).
 
 ## Лицензия
 

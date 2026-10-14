@@ -45,9 +45,3 @@ helm template synth-addon charts/synth-addon
 в `values.yaml` нет — только имя `existingSecret`. `imagePullSecrets` по умолчанию
 пуст (публичный реестр); для приватного реестра укажите Secret
 (`kubernetes.io/dockerconfigjson`).
-
-## Managed-деплой
-
-Управляемый деплой в K3s (GitOps, Rancher Fleet) ведётся **во внешнем закрытом
-репозитории** окружения: из шаблона `fleet.yaml` **убран**. Чарт подключается как
-источник, а namespace/значения задаются конфигурацией того репозитория.
