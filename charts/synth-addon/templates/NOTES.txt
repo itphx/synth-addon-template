@@ -1,9 +1,17 @@
 Чарт {{ .Chart.Name }} {{ .Chart.Version }} установлен как релиз {{ .Release.Name }}
 в namespace {{ .Release.Namespace }}.
 
+{{- if .Values.service.enabled }}
+
 Сервис доступен внутри кластера:
 
   http://{{ include "synth-addon.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+{{- if .Values.service.mcpPort }}
+
+MCP (Streamable HTTP) — на порту {{ .Values.service.mcpPort }}:
+
+  http://{{ include "synth-addon.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.mcpPort }}
+{{- end }}
 
 Проверка готовности (без аутентификации):
 
@@ -25,6 +33,46 @@ Persistent-хранилище (data-dir):
   PVC {{ include "synth-addon.fullname" . }} ({{ .Values.persistence.size }}) смонтирован в {{ .Values.persistence.mountPath }}.
 {{- else }}
   persistence.enabled=false — данные эфемерны (каталог контейнера).
+{{- end }}
+{{- else }}
+
+Сервис выключен (service.enabled=false) — Deployment, Service, PVC и Ingress не
+созданы. Это валидная конфигурация для add-on'а без сервиса (только MCP/скиллы).
+{{- end }}
+
+{{- if .Values.autoInstall.enabled }}
+
+Авто-установка ресурсов в Synth (hook-Job):
+
+  ресурсы:        mcp={{ .Values.autoInstall.mcp }}, skills={{ .Values.autoInstall.skills }}
+  инстанс Synth:  {{ .Values.autoInstall.url }}
+{{- if .Values.autoInstall.tenant }}
+  tenant:         {{ .Values.autoInstall.tenant }}
+{{- end }}
+  installer-ключ: Secret {{ .Values.autoInstall.installerSecretName }} (ключ {{ .Values.autoInstall.installerSecretKey }})
+
+Проверить результат:
+
+  kubectl -n {{ .Release.Namespace }} get job {{ include "synth-addon.installJobName" . }}
+  kubectl -n {{ .Release.Namespace }} logs job/{{ include "synth-addon.installJobName" . }}
+
+  # в инстансе Synth (ADMIN-ключом):
+  curl -s -H "Authorization: Bearer <ключ>" {{ .Values.autoInstall.url }}/mcp/registry
+  curl -s -H "Authorization: Bearer <ключ>" {{ .Values.autoInstall.url }}/skills
+
+Установка идемпотентна: повторный `helm upgrade` обновляет конфиг MCP и файлы
+скиллов, дубликатов не появляется.
+{{- else }}
+
+Авто-установка ресурсов выключена (autoInstall.enabled=false). Включить:
+
+  helm upgrade {{ .Release.Name }} <chart> \
+    --set autoInstall.enabled=true \
+    --set autoInstall.url=http://synth-backend.{{ .Release.Namespace }}.svc.cluster.local:5000/api/v2 \
+    --set autoInstall.installerSecretName=synth-addon-installer
+
+Ресурсы ставятся из `provides` в addon.json (MCP-серверы и скиллы); подробности —
+docs/deployment.md.
 {{- end }}
 
 Внимание: add-on — внешний сервис, а не плагин. Он общается с Synth по API v2,

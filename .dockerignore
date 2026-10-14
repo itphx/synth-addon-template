@@ -12,7 +12,6 @@ data
 charts
 examples
 docs
-skills
 *.log
 *.tsbuildinfo
 **/*.test.ts
@@ -27,4 +26,3 @@ eslint.config.js
 README.md
 AGENTS.md
 LICENSE
-addon.json

@@ -1,18 +1,20 @@
 #!/usr/bin/env node
 import { loadConfig, type ConfigOverrides } from './config.js';
 import { FileStore } from './file-store.js';
-import { runMcpServer } from './mcp.js';
+import { createMcpHttpHandler, runMcpServer } from './mcp.js';
 import { createApp, serve } from './server.js';
 
 interface ParsedArgs {
   overrides: ConfigOverrides;
   mcp: boolean;
+  http: boolean;
   help: boolean;
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
   const overrides: ConfigOverrides = {};
   let mcp = false;
+  let http = false;
   let help = false;
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -23,6 +25,9 @@ function parseArgs(argv: string[]): ParsedArgs {
     switch (flag) {
       case '--mcp':
         mcp = true;
+        break;
+      case '--http':
+        http = true;
         break;
       case '--help':
       case '-h':
@@ -59,7 +64,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     }
   }
 
-  return { overrides, mcp, help };
+  return { overrides, mcp, http, help };
 }
 
 function printHelp(): void {
@@ -68,10 +73,12 @@ function printHelp(): void {
       'synth-addon-example',
       '',
       'Использование:',
-      '  synth-addon-example [--mcp] [--port N] [--host HOST] [--data-dir DIR] [--token TOKEN] [--proxy URL]',
+      '  synth-addon-example [--mcp | --http] [--port N] [--host HOST] [--data-dir DIR] [--token TOKEN] [--proxy URL]',
       '',
       'Флаги:',
       '  --mcp            запустить MCP-сервер по stdio вместо HTTP',
+      '  --http           отдавать MCP по Streamable HTTP на том же порту, путь /mcp',
+      '                   (совпадает с addon.json provides.mcp.path; также поднимает HTTP API)',
       '  --port N         порт HTTP-сервера (env SYNTH_ADDON_PORT, по умолчанию 7100)',
       '  --host HOST      адрес прослушивания (env SYNTH_ADDON_HOST, по умолчанию 127.0.0.1)',
       '  --data-dir DIR   каталог JSON-хранилища (env SYNTH_ADDON_DATA_DIR, по умолчанию <repo>/data)',
@@ -83,7 +90,7 @@ function printHelp(): void {
 }
 
 async function main(): Promise<void> {
-  const { overrides, mcp, help } = parseArgs(process.argv.slice(2));
+  const { overrides, mcp, http, help } = parseArgs(process.argv.slice(2));
   if (help) {
     printHelp();
     return;
@@ -98,7 +105,9 @@ async function main(): Promise<void> {
     return;
   }
 
-  const app = createApp(config);
+  const app = createApp(config, {
+    mcpHandler: http ? createMcpHttpHandler(config.version) : undefined,
+  });
   await serve(app, config);
   console.error(`synth-addon-example ${config.version}: http://${config.host}:${config.port}`);
   console.error(`Данные: ${config.dataDir}`);
@@ -106,6 +115,7 @@ async function main(): Promise<void> {
     `Auth: ${config.token ? 'Bearer-токен включён' : 'отключена (SYNTH_ADDON_TOKEN не задан)'}`,
   );
   console.error(`Egress-прокси: ${config.proxyUrl ?? 'не задан (прямые запросы)'}`);
+  if (http) console.error(`MCP (Streamable HTTP): http://${config.host}:${config.port}/mcp`);
 }
 
 main().catch((error: unknown) => {

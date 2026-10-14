@@ -1,4 +1,5 @@
-# Service сервиса-надстройки: ClusterIP c портом сервиса.
+{{- if .Values.service.enabled }}
+# Service сервиса-надстройки: ClusterIP c портом сервиса (+ порт MCP, если задан).
 apiVersion: v1
 kind: Service
 metadata:
@@ -12,5 +13,12 @@ spec:
       port: {{ .Values.service.port }}
       targetPort: http
       protocol: TCP
+    {{- if .Values.service.mcpPort }}
+    - name: mcp
+      port: {{ .Values.service.mcpPort }}
+      targetPort: mcp
+      protocol: TCP
+    {{- end }}
   selector:
     {{- include "synth-addon.selectorLabels" . | nindent 4 }}
+{{- end }}

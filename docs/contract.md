@@ -65,10 +65,14 @@ Synth по тем же адресам, что и любой внешний кл�
   Подробности — документация API v2 в репозитории Synth (AD-017).
 - **MCP.** Add-on может отдать агенту инструменты **двумя** способами: локальный
   **stdio**-сервер (движок сам спавнит процесс — `node dist/index.js --mcp`)
-  либо **Streamable HTTP**-эндпоинт. Synth регистрирует MCP-серверы в реестре
-  (AD-071) и неймспейсит инструменты как `{serverName}_{toolName}` — поэтому тул
-  `example_ping` сервера `synth-addon-example` виден агенту как
-  `synth-addon-example_example_ping`.
+  либо **Streamable HTTP**-эндпоинт (пример — `node dist/index.js --http`;
+  MCP отдаётся на том же HTTP-сервере, путь `/mcp`). Synth регистрирует
+  MCP-серверы в реестре (AD-071) и неймспейсит инструменты как
+  `{serverName}_{toolName}` — поэтому тул `example_ping` сервера
+  `synth-addon-example` виден агенту как `synth-addon-example_example_ping`.
+  Для внешнего аддона адрес/порт/путь MCP объявляются в `provides.mcp` (§4.1) и
+  регистрируются авто-установкой (см. [deployment.md](./deployment.md)). Аддон,
+  обслуживающий несколько сред, добавляет в путь тенант (`/mcp/{tenant}`).
 - **Внешние события (AD-089).** Каждый вызов `POST /api/v2/events` несёт как
   минимум поля:
   - `source` — идентификатор источника (например, `telegram`);
@@ -150,7 +154,17 @@ Synth по тем же адресам, что и любой внешний кл�
   "kind": "addon",
   "host": "^0.9.0",
   "contracts": { "apiV2": "^2", "events": "^1", "mcp": "^1" },
-  "description": "Пример внешнего сервиса-надстройки Synth"
+  "description": "Пример внешнего сервиса-надстройки Synth",
+  "provides": {
+    "mcp": {
+      "name": "synth-addon-example",
+      "transport": "http",
+      "port": 7100,
+      "path": "/mcp",
+      "description": "Пример MCP-сервера шаблона add-on'а (тул example_ping)"
+    },
+    "skills": [{ "name": "example", "path": "skills/example" }]
+  }
 }
 ```
 
@@ -162,6 +176,7 @@ Synth по тем же адресам, что и любой внешний кл�
 | `host` | Диапазон **совместимых версий Synth** (semver-range по версии ядра) |
 | `contracts` | Диапазоны версий используемых контрактов: `apiV2`, `events`, `mcp` |
 | `description` | Краткое описание |
+| `provides` | **Необязательно.** Что аддон ставит в Synth: MCP-сервер и/или скиллы (см. §4.1) |
 
 Правила:
 
@@ -174,6 +189,47 @@ Synth по тем же адресам, что и любой внешний кл�
 - Реестр/каталог add-on'ов и trust/install-policy — по образцу AD-068
   (переиспользуется единая инфраструктура доверия).
 
+### 4.1 `provides` — что аддон ставит в Synth
+
+`provides` описывает **декларативные ресурсы** аддона, которые устанавливаются в
+инстанс Synth при деплое (авто-установка Helm-чарта, `autoInstall.enabled=true`;
+см. [deployment.md](./deployment.md) «Авто-установка ресурсов»). Оба поля
+необязательны и независимы:
+
+```json
+"provides": {
+  "mcp": { "name": "<registry-name>", "transport": "http", "port": 7101, "path": "/mcp/{tenant}", "description": "…" },
+  "skills": [{ "name": "<skill-name>", "path": "skills/<skill-name>" }]
+}
+```
+
+| Поле | Смысл |
+|---|---|
+| `provides.mcp.name` | Имя MCP-сервера в реестре Synth (AD-071); тулы видны агенту как `{name}_{tool}` |
+| `provides.mcp.transport` | `http` (Streamable HTTP) или `sse`; `stdio` для внешнего аддона не используется |
+| `provides.mcp.port` | Порт MCP-сервера (совпадает с `service.mcpPort`/`service.port` чарта) |
+| `provides.mcp.path` | Путь MCP; `{tenant}` подставляется значением `autoInstall.tenant` |
+| `provides.mcp.description` | Человекочитаемое описание сервера (попадает в блок `mcp.servers` промпта) |
+| `provides.skills[].name` | Имя скилла (AD-046): строчные латинские буквы/цифры, разделитель — дефис |
+| `provides.skills[].path` | Каталог скилла с `SKILL.md` (относительно корня репозитория) |
+
+### 4.2 Три вида аддонов
+
+`provides` и `service.enabled` в чарте задают три валидных конфигурации:
+
+| Вид | `provides` | `service.enabled` | Что разворачивается |
+|---|---|---|---|
+| **Сервис + MCP + скиллы** | `mcp` + `skills` | `true` | Deployment + Service (+ MCP-порт) + hook-Job установки |
+| **Только MCP / только скиллы** | только `mcp` или только `skills` | `false` | только hook-Job установки (сервис не нужен) |
+| **Ничего декларативного** | отсутствует | `false` | ничего (чарт-заготовка/только образ) |
+
+Аддон **без сервиса** — полноценная конфигурация: ресурсы ставит hook-Job, а
+Deployment/Service/PVC/Ingress не рендерятся. Если у аддона нет и образа, файлы
+скиллов передаются через ConfigMap (`autoInstall.skillsFromConfigMap`), а
+инсталлятор — через ConfigMap (`autoInstall.scriptConfigMap`); подробности —
+[deployment.md](./deployment.md).
+
+
 ---
 
 ## 5. Структура репозитория
@@ -184,7 +240,7 @@ Synth по тем же адресам, что и любой внешний кл�
 
 ```text
 synth-addon-template/
-├── addon.json                  # манифест add-on'а (kind/host/contracts)
+├── addon.json                  # манифест add-on'а (kind/host/contracts/provides)
 ├── package.json                # private, type:module, pnpm-скрипты
 ├── pnpm-workspace.yaml         # apps/*, packages/*
 ├── tsconfig.base.json          # общий strict-TS конфиг
@@ -192,10 +248,10 @@ synth-addon-template/
 ├── apps/
 │   └── example/                # СЕРВИС (роль «app»): запускается, имеет bin
 │       └── src/
-│           ├── index.ts        # bin: HTTP (Hono) + --mcp (stdio MCP) + --help
+│           ├── index.ts        # bin: HTTP (Hono) + --mcp (stdio) / --http (MCP HTTP) + --help
 │           ├── config.ts       # envOr: CLI > env > секрет-файл > дефолт
-│           ├── server.ts       # GET /health + примеры роутов (echo/fetch), auth
-│           ├── mcp.ts          # MCP stdio, тул example_ping
+│           ├── server.ts       # GET /health + примеры роутов (echo/fetch), auth, монтаж /mcp
+│           ├── mcp.ts          # MCP: stdio (тул example_ping) и Streamable HTTP
 │           └── file-store.ts   # JSON FileStore (tmp → rename, AD-005)
 ├── packages/
 │   └── example-lib/            # БИБЛИОТЕКА (роль «lib»): не запускается
@@ -203,13 +259,19 @@ synth-addon-template/
 │           ├── index.ts        # публичный API пакета
 │           └── egress.ts       # createProxyAgent/requestJson (socks/http, AD-088)
 ├── skills/example/SKILL.md     # скилл формата AD-046
-├── examples/secret.yaml        # пример Secret (обычный манифест, не Helm)
+├── scripts/
+│   └── install-into-synth.mjs  # референсный инсталлятор ресурсов (provides) в Synth
+├── examples/
+│   ├── secret.yaml             # пример Secret сервиса (обычный манифест, не Helm)
+│   └── installer-secret.yaml   # пример Secret с installer-ключом (autoInstall)
 ├── docker/Dockerfile           # multi-stage образ сервиса (node:22-alpine)
 ├── docker-compose.yml          # локальный запуск сервиса + volume для data
-├── charts/synth-addon/         # Helm-чарт сервиса (только k8s + NOTES.txt)
+├── charts/synth-addon/         # Helm-чарт (k8s + autoInstall hook-Job + NOTES.txt)
+│   └── templates/install-job.yaml          # hook-Job авто-установки
+│   └── templates/install-skills-configmap.yaml  # скиллы без образа
 ├── docs/contract.md            # этот документ (канонический источник)
 ├── docs/configuration.md       # конфигурация и секреты
-├── docs/deployment.md          # docker/compose/K8s/Helm
+├── docs/deployment.md          # docker/compose/K8s/Helm/авто-установка
 ├── README.md
 └── AGENTS.md
 ```
@@ -221,9 +283,10 @@ synth-addon-template/
 | `apps/*` | Запускаемые сервисы (HTTP/MCP). Каждый сервис — отдельный пакет с `bin` |
 | `packages/*` | Переиспользуемые библиотеки между сервисами (клиенты, домен, утилиты). Не запускаются, импортируются через `workspace:*` |
 | `skills/*` | Скиллы формата AD-046 (`SKILL.md` + supporting-файлы) — контент для агента |
+| `scripts/*` | Инсталлятор ресурсов (`provides`) в инстанс Synth — референсная реализация |
 | `examples/` | Примеры манифестов (Secret и т. п.) — вне Helm-шаблонов |
 | `docker/` | Dockerfile(ы) сервисов |
-| `charts/` | Helm-чарт(ы) сервисов |
+| `charts/` | Helm-чарт(ы) сервисов (+ hook-Job авто-установки) |
 | `docs/` | Контракт, конфигурация, деплой |
 
 Слои зависимостей: `packages/*` **не импортируют** из `apps/*`; приложения
@@ -251,6 +314,14 @@ synth-addon-template/
       сервис и слушает ожидаемый порт.
 - [ ] **Compose/Helm.** `docker-compose.yml`, `charts/synth-addon`
       (`helm lint` + `helm template` зелёные).
+- [ ] **`provides`.** Ресурсы аддона описаны в `addon.json` (`provides.mcp` /
+      `provides.skills`) или явно отсутствуют; имена совпадают с реальными
+      (имя MCP-сервера в реестре, имена скиллов), `path` MCP совпадает с
+      маршрутом сервиса.
+- [ ] **Авто-установка.** `helm template` для своего вида аддона (сервис+MCP+
+      скиллы / без сервиса / только скиллы) рендерится без ошибок; hook-Job
+      идемпотентен (повторный запуск не плодит дубликаты, инсталлятор
+      проверен с `--dry-run`); installer-ключ лежит в Secret, не в values.
 - [ ] **README/AGENTS.** Описаны назначение, команды, конфиг и границы.
 - [ ] **Совместимость.** Заполнены `addon.json` (`host`, `contracts`, semver);
       диапазоны соответствуют реально используемым контрактам.

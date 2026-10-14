@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { z } from 'zod';
 
 const SERVER_NAME = 'synth-addon-example';
@@ -43,4 +44,37 @@ export async function runMcpServer(version: string): Promise<void> {
   const server = createMcpServer(version);
   const transport = new StdioServerTransport();
   await server.connect(transport);
+}
+
+/**
+ * Готовит обработчик MCP по **Streamable HTTP** (для режима `--http`).
+ *
+ * Транспорт — web-standard (`Request` → `Response`), поэтому монтируется в
+ * существующий Hono-сервер без второго порта: `app.all('/mcp', …)`.
+ *
+ * Режим stateless: SDK требует **свежий транспорт на каждый запрос**
+ * («Stateless transport cannot be reused across requests»), поэтому сервер и
+ * транспорт создаются в обработчике и закрываются после ответа. Ответы — JSON
+ * (`enableJsonResponse`), без долгоживущего SSE-потока — так закрытие
+ * транспорта не обрывает стрим. Состояние держит сам сервис.
+ *
+ * Аддон, обслуживающий несколько сред, обычно отдаёт путь с тенантом —
+ * `/mcp/{tenant}` — и указывает его в `addon.json.provides.mcp.path`
+ * (см. docs/contract.md §4); в примере тенант не нужен.
+ */
+export function createMcpHttpHandler(version: string): (request: Request) => Promise<Response> {
+  return async (request: Request): Promise<Response> => {
+    const server = createMcpServer(version);
+    const transport = new WebStandardStreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+      enableJsonResponse: true,
+    });
+    await server.connect(transport);
+    try {
+      return await transport.handleRequest(request);
+    } finally {
+      // Закрывает и транспорт (Protocol.close → transport.close).
+      await server.close();
+    }
+  };
 }

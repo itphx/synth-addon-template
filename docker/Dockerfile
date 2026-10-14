@@ -43,6 +43,13 @@ RUN pnpm install --prod
 COPY --from=builder /src/packages/example-lib/dist packages/example-lib/dist
 COPY --from=builder /src/apps/example/dist apps/example/dist
 
+# Манифест, скиллы и референсный инсталлятор — для hook-Job'а авто-установки
+# ресурсов (charts/synth-addon, templates/install-job.yaml):
+#   node scripts/install-into-synth.mjs --synth-url … (читает addon.json.provides)
+COPY addon.json ./
+COPY skills skills
+COPY scripts scripts
+
 # JSON-хранилище (монтируется volume'ом в compose/K8s).
 ENV SYNTH_ADDON_HOST=0.0.0.0
 ENV SYNTH_ADDON_PORT=7100

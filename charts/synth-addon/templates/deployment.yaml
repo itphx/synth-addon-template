@@ -1,5 +1,7 @@
+{{- if .Values.service.enabled }}
 # Deployment сервиса-надстройки: один контейнер, HTTP-порт из values, env из values.
 # Секреты подключаются через existingSecret (envFrom), а не значениями в чарте.
+# Рендерится только при service.enabled=true (аддон без сервиса — только autoInstall).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -37,6 +39,11 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+            {{- if .Values.service.mcpPort }}
+            - name: mcp
+              containerPort: {{ .Values.service.mcpPort }}
+              protocol: TCP
+            {{- end }}
           env:
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
@@ -86,3 +93,4 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+{{- end }}

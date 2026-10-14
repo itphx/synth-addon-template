@@ -1,6 +1,21 @@
 # --- Дефолтные значения для чарта synth-addon ---
 # Общий шаблон внешнего сервиса-надстройки (add-on) Synth.
 # Переопределяются при установке (--set, values-файл).
+#
+# Чарт поддерживает три вида add-on'ов (подробности — docs/contract.md §4,
+# docs/deployment.md «Авто-установка»):
+#
+#   1) сервис + MCP + skills — полный шаблон (значения по умолчанию):
+#        service.enabled: true, autoInstall.enabled: true
+#   2) только MCP / только скиллы, без long-running сервиса:
+#        service.enabled: false, autoInstall.enabled: true,
+#        autoInstall.mcp / autoInstall.skills — что именно ставим;
+#        для скиллов без образа — autoInstall.skillsFromConfigMap.enabled: true
+#   3) ничего (только образ/чарт, без сервиса и без авто-установки):
+#        service.enabled: false, autoInstall.enabled: false
+#
+# «add-on без сервиса» — валидная конфигурация: ресурсы (MCP/скиллы) ставятся
+# hook-Job'ом, Deployment/Service/PVC не рендерятся.
 
 # Namespace развёртывания. Helm деплоит в namespace релиза; значение служит
 # документацией для `helm template` и конфигурации managed-деплоя.
@@ -10,7 +25,22 @@ nameOverride: ""
 fullnameOverride: ""
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Поды — один Deployment.
+# Сервис аддона: Deployment + Service (+ PVC/Ingress по флагам ниже).
+# service.enabled=false — аддон без сервиса (например, только скиллы/MCP
+# отдаётся внешним хостом): Deployment, Service, PVC и Ingress не рендерятся,
+# остаётся только авто-установка ресурсов (блок autoInstall).
+# ─────────────────────────────────────────────────────────────────────────────
+service:
+  enabled: true
+  type: ClusterIP
+  port: 7100
+  # Порт MCP-сервера (Streamable HTTP), если он отличается от service.port.
+  # 0/пусто — отдельный порт в Service не публикуется. Должен совпадать с
+  # `provides.mcp.port` в addon.json — по нему чарт собирает URL для авто-установки.
+  mcpPort: 0
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Поды — один Deployment (при service.enabled=true).
 # ─────────────────────────────────────────────────────────────────────────────
 replicaCount: 1
 
@@ -25,13 +55,6 @@ image:
 #   imagePullSecrets:
 #     - name: my-registry-credentials
 imagePullSecrets: []
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Service — ClusterIP с портом сервиса.
-# ─────────────────────────────────────────────────────────────────────────────
-service:
-  type: ClusterIP
-  port: 7100
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Env-переменные приложения (НЕ секреты). Секреты — через existingSecret.
@@ -49,6 +72,7 @@ existingSecret: ""
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Хранилище JSON-состояния (data-dir). Пусто (enabled: false) — без PVC.
+# При service.enabled=false PVC не рендерится (монтировать некуда).
 # ─────────────────────────────────────────────────────────────────────────────
 persistence:
   enabled: false
@@ -83,6 +107,75 @@ ingress:
   className: traefik
   hosts: []
   tls: []
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Авто-установка ресурсов аддона (из `provides` в addon.json) в инстанс Synth.
+#
+# Выполняется Helm hook-Job'ом (`templates/install-job.yaml`: post-install,
+# post-upgrade) через референсный инсталлятор scripts/install-into-synth.mjs:
+#   managed    — API v2 инстанса Synth (MCP-реестр + скиллы);
+#   standalone — файлы локального инстанса (--config/--data-dir).
+#
+# Идемпотентно: повторный `helm upgrade` обновляет конфиг, а не плодит дубликаты.
+# Токен/ключ — ТОЛЬКО из Secret (installerSecretName), в values не хранится.
+# ─────────────────────────────────────────────────────────────────────────────
+autoInstall:
+  # Запускать ли hook-Job установки ресурсов.
+  enabled: false
+  # Базовый URL API v2 инстанса Synth, например
+  # http://synth-backend.synth.svc.cluster.local:5000/api/v2
+  url: ""
+  # Значение подстановки {tenant} в provides.mcp.path (например, имя бота/среды).
+  tenant: ""
+  # Secret с installer-ключом (service-key/API-ключ с правами на MCP-реестр и
+  # скиллы; целевой скоуп — `addons:install`, см. docs/deployment.md) и ключ в нём.
+  installerSecretName: ""
+  installerSecretKey: "token"
+  # Что устанавливать (ресурсы берутся из addon.json `provides`).
+  mcp: true
+  skills: true
+  # Образ для hook-Job'а. Пусто — образ чарта (image.repository:image.tag),
+  # в котором есть addon.json, skills/ и scripts/install-into-synth.mjs.
+  # Для аддона без образа укажите образ с node (например, node:22-alpine) и
+  # см. scriptConfigMap/skillsFromConfigMap.
+  image: ""
+  # Сколько раз Kubernetes повторит Job при падении.
+  backoffLimit: 3
+  # Путь к инсталлятору внутри образа.
+  scriptPath: "scripts/install-into-synth.mjs"
+  # Аддон без образа: имя существующего ConfigMap с ключом
+  # `install-into-synth.mjs` (создать: kubectl create configmap <имя>
+  # --from-file=install-into-synth.mjs=scripts/install-into-synth.mjs).
+  # Задан — монтируется в Job, scriptPath игнорируется.
+  scriptConfigMap: ""
+  # Явный URL MCP-сервера (переопределяет сборку из provides.mcp + service.mcpPort).
+  # Нужен, если MCP отдаётся не Service'ом чарта (внешний хост/ingress).
+  mcpUrl: ""
+  # Ресурсы hook-Job'а.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  # Скиллы для аддонов без образа: чарт рендерит ConfigMap из files и монтирует
+  # её в Job (инсталлятор читает дерево как `--skills-dir`). Если у аддона есть
+  # образ — файлы берутся из него, эта опция не нужна.
+  #
+  # files — «относительный путь под корнем скиллов → содержимое», например:
+  #   files:
+  #     example/SKILL.md: |
+  #       ---
+  #       name: example
+  #       description: ...
+  #       ---
+  #       ...
+  #     example/reference/tools.md: |
+  #       ...
+  skillsFromConfigMap:
+    enabled: false
+    files: {}
 
 nodeSelector: {}
 tolerations: []

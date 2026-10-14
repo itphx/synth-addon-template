@@ -20,6 +20,16 @@ const FetchSchema = z.object({
   body: z.string().optional(),
 });
 
+/** Опции сборки приложения (MCP по HTTP добавляется при `--http`). */
+export interface AppOptions {
+  /**
+   * Обработчик MCP Streamable HTTP (см. `createMcpHttpHandler`). Задан —
+   * монтируется на `/mcp` (без аутентификации: MCP-политика определяется
+   * add-on'ом и его сетевым контуром, см. docs/contract.md §2).
+   */
+  mcpHandler?: (request: Request) => Promise<Response>;
+}
+
 /**
  * Собирает Hono-приложение add-on'а.
  *
@@ -27,7 +37,7 @@ const FetchSchema = z.object({
  * `Authorization: Bearer <token>`, **если** задан `config.token`. Без токена
  * middleware присутствует, но пропускает запросы (локальный запуск).
  */
-export function createApp(config: AddonConfig): Hono {
+export function createApp(config: AddonConfig, options: AppOptions = {}): Hono {
   const app = new Hono();
 
   app.use('*', cors());
@@ -41,6 +51,13 @@ export function createApp(config: AddonConfig): Hono {
     }
     return next();
   });
+
+  // MCP по Streamable HTTP (режим `--http`): путь совпадает с
+  // `addon.json.provides.mcp.path` (в примере — `/mcp`).
+  if (options.mcpHandler) {
+    const mcpHandler = options.mcpHandler;
+    app.all('/mcp', (c) => mcpHandler(c.req.raw));
+  }
 
   // Обязательный маршрут готовности — без аутентификации.
   app.get('/health', (c) => c.json({ status: 'ok', version: config.version }));

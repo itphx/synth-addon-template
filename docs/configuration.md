@@ -54,6 +54,14 @@ CLI-флаг  >  env  >  файл секретов  >  дефолт
    (обычный Secret, НЕ Helm-шаблон). В проде используйте SealedSecret/внешний
    секрет-менеджер.
 
+Отдельно от секретов сервиса живёт **installer-ключ авто-установки** (тот же
+класс секретов, другое назначение): имя Secret — `autoInstall.installerSecretName`,
+ключ — `autoInstall.installerSecretKey` (по умолчанию `token`). Hook-Job
+подставляет значение в env `SYNTH_INSTALL_TOKEN`; локально тот же токен читается
+инсталлятором из `--token` / env `SYNTH_INSTALL_TOKEN`. Пример манифеста —
+[examples/installer-secret.yaml](../examples/installer-secret.yaml); подробности —
+[deployment.md](./deployment.md) «Авто-установка ресурсов».
+
 Пример локального наполнения каталога секретов (вне git):
 
 ```bash
