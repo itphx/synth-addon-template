@@ -1,5 +1,7 @@
 # Конфигурация и секреты
 
+> 🌐 [English](./en/configuration.md) · **Русский**
+
 Единый справочник конфигурации шаблона add-on'а. Реализация — в
 `apps/example/src/config.ts` (хелпер `envOr`).
 

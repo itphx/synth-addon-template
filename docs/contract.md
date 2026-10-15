@@ -1,5 +1,7 @@
 # Контракт add-on'а Synth
 
+> 🌐 [English](./en/contract.md) · **Русский**
+
 > **Аудитория:** авторы внешних сервисов-надстроек (add-on'ов) Synth.
 > **Основание:** [AD-086](https://gitverse.ru/itphx/synth) (зонтик расширяемости,
 > класс «внешние сервисы-надстройки») и [AD-090](https://gitverse.ru/itphx/synth)

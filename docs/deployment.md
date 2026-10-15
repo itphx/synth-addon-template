@@ -1,5 +1,7 @@
 # Деплой add-on'а
 
+> 🌐 [English](./en/deployment.md) · **Русский**
+
 Четыре способа запуска шаблона. Конфигурация и секреты — [configuration.md](./configuration.md),
 ресурсы аддона (`provides`) — [contract.md](./contract.md) §4.
 
